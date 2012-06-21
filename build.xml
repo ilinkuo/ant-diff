@@ -1,0 +1,113 @@
+<project name="CIDA-diff-tools-for-geoserver"  basedir=".">
+	<description>
+		Convenience tasks to enhance local development
+	</description>
+
+	<!-- Set these properties for your custom unwar -->
+	<property name="app.base.dir" location="base"/>
+	<property name="app.A.dir" location="A"/>
+	<property name="app.B.dir" location="B"/>
+	<property name="results.dir" location="results" />
+	
+	<target name="diff-A-to-B">
+		<description>
+			Compare the contents of A to B, identifying:
+				deleted files, changed files, and newly inserted/added files
+		</description>
+		<delete dir="${results.dir}"/>
+			
+		<copy todir="${results.dir}/inserted-into-A-at-B">
+			<fileset dir="${app.B.dir}">
+				<present targetdir="${app.A.dir}" present="srconly"/>
+			</fileset>
+		</copy>
+		<copy todir="${results.dir}/deleted-from-A-to-B">
+			<fileset dir="${app.A.dir}">
+				<present targetdir="${app.B.dir}" present="srconly"/>
+			</fileset>
+		</copy>
+			
+		<!-- compute difference from A to B -->
+			<copy todir="${results.dir}/temp-changed-from-A-to-B">
+				<fileset dir="${app.A.dir}">
+					<different targetdir="${app.B.dir}" ignoreFileTimes="true" />
+				</fileset>
+			</copy>
+						
+			<copy todir="${results.dir}/changed-from-A-to-B">
+				<fileset dir="${results.dir}/temp-changed-from-A-to-B">
+					<present targetdir="${results.dir}/deleted-from-A-to-B" present="srconly" />
+				</fileset>
+			</copy>
+			<delete dir="${results.dir}/temp-changed-from-A-to-B"/>
+		<!-- END compute difference between A to B -->
+	</target>
+	
+	<target name="diff-A-overlay-base-to-B">
+		<description>
+			Considering the conglomerate of an overlay of A on top of base (in the sense of a maven war-overlay),
+			Compares the contents of B against the conglomerate.
+			This is simply the diff-A-to-B modulo those files already in base plus those deleted from base.
+		</description>
+		<delete dir="${results.dir}"/>
+		
+		<!-- The inserted into A at B files needs to be done modulo those files already in base -->
+			<copy todir="${results.dir}/temp-common-base-and-B">
+				<fileset dir="${app.base.dir}">
+					<not>
+						<different targetdir="${app.B.dir}" ignoreFileTimes="true" />
+					</not>
+				</fileset>
+			</copy>
+			<copy todir="${results.dir}/temp-inserted-into-A-at-B">
+				<fileset dir="${app.B.dir}">
+					<present targetdir="${app.A.dir}" present="srconly"/>
+				</fileset>
+			</copy>
+			<copy todir="${results.dir}/inserted-into-A-at-B">
+				<fileset dir="${results.dir}/temp-inserted-into-A-at-B">
+					<different targetdir="${results.dir}/temp-common-base-and-B" ignoreFileTimes="true" />
+				</fileset>
+			</copy>
+			<delete dir="${results.dir}/temp-inserted-into-A-at-B"/>
+			<delete dir="${results.dir}/temp-common-base-and-B"/>
+		<!-- END The inserted into A at B files needs to be done modulo those files already in base -->
+			
+		<copy todir="${results.dir}/deleted-from-A-to-B">
+			<fileset dir="${app.A.dir}">
+				<present targetdir="${app.B.dir}" present="srconly"/>
+			</fileset>
+		</copy>
+		
+		<!-- Needs to be calculated modulo those deleted from A to B-->
+		<copy todir="${results.dir}/temp-deleted-from-base-by-B">
+			<fileset dir="${app.base.dir}">
+				<present targetdir="${app.B.dir}" present="srconly"/>
+			</fileset>
+		</copy>
+		<copy todir="${results.dir}/deleted-from-base-by-B">
+			<fileset dir="${app.base.dir}">
+				<different targetdir="${results.dir}/deleted-from-A-to-B" ignoreFileTimes="true" />
+			</fileset>
+		</copy>
+			
+		<!-- compute difference from A to B -->
+			<copy todir="${results.dir}/temp-changed-from-A-to-B">
+				<fileset dir="${app.A.dir}">
+					<different targetdir="${app.B.dir}" ignoreFileTimes="true" />
+				</fileset>
+			</copy>		
+			
+						
+			<copy todir="${results.dir}/changed-from-A-to-B">
+				<fileset dir="${results.dir}/temp-changed-from-A-to-B">
+					<present targetdir="${results.dir}/deleted-from-A-to-B" present="srconly" />
+				</fileset>
+			</copy>
+			<delete dir="${results.dir}/temp-changed-from-A-to-B"/>
+		<!-- END compute difference between A to B -->
+	</target>			
+				
+
+
+</project>
